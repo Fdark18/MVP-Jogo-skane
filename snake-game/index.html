@@ -6,13 +6,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <div id="startScreen">
+        <h1>Bem-vindo ao Jogo da Cobrinha!</h1>
+        <label for="snakeColor">Escolha a cor da sua cobra:</label>
+        <input type="color" id="snakeColor" name="snakeColor" value="#00ff00">
+        <button id="startButton">Iniciar Jogo</button>
+    </div>
+
+    <canvas id="gameCanvas" width="600" height="600" class="hidden"></canvas>
+
     <div id="gameOverScreen" class="hidden">
         <h1>Game Over</h1>
         <div id="scoreBoard"></div>
         <button id="restartButton">Reiniciar</button>
         <button id="exitButton">Sair</button>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>

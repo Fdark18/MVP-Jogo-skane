@@ -1,6 +1,11 @@
 // Seleciona os elementos do DOM
+const startScreen = document.getElementById('startScreen');
+const snakeColorInput = document.getElementById('snakeColor');
+const startButton = document.getElementById('startButton');
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
 const gameOverScreen = document.getElementById('gameOverScreen');
 const restartButton = document.getElementById('restartButton');
 const exitButton = document.getElementById('exitButton');
@@ -41,21 +46,34 @@ function getNextBotName() {
     return count > 1 ? `${name} ${count}` : name;
 }
 
+// Lista de cores disponíveis para os bots
+const botColors = ['red', 'yellow', 'blue', 'orange', 'purple', 'pink', 'cyan', 'magenta', 'lime', 'teal'];
+
+// Função para remover a cor do jogador das cores disponíveis para bots
+function getAvailableBotColors(playerColor) {
+    return botColors.filter(color => color.toLowerCase() !== playerColor.toLowerCase());
+}
+
 // Classe para representar uma cobra
 class Snake {
     constructor(color, name = 'Bot', isBot = false) {
         this.name = name;
+        this.color = color;
+        this.isBot = isBot;
+
         this.x = Math.floor(Math.random() * tileCount);
         this.y = Math.floor(Math.random() * tileCount);
         this.dx = 0;
         this.dy = 0;
         this.cells = [];
         this.maxCells = 4;
-        this.color = color;
-        this.isBot = isBot;
         this.score = 0;
         this.alive = true;
         this.changeDirectionCooldown = 0;
+
+        // Variável para controlar o efeito de teletransporte
+        this.isTeleporting = false;
+        this.teleportFrames = 0;
     }
 
     update() {
@@ -65,17 +83,21 @@ class Snake {
         this.x += this.dx;
         this.y += this.dy;
 
-        // Teletransporte nas bordas
+        // Teletransporte nas bordas com efeito
         if (this.x < 0) {
             this.x = tileCount - 1;
+            this.triggerTeleport();
         } else if (this.x >= tileCount) {
             this.x = 0;
+            this.triggerTeleport();
         }
 
         if (this.y < 0) {
             this.y = tileCount - 1;
+            this.triggerTeleport();
         } else if (this.y >= tileCount) {
             this.y = 0;
+            this.triggerTeleport();
         }
 
         // Armazena a posição atual
@@ -92,6 +114,14 @@ class Snake {
             this.changeDirectionCooldown = 10; // Evita mudança muito rápida
         } else if (this.isBot) {
             this.changeDirectionCooldown--;
+        }
+
+        // Atualiza o efeito de teletransporte
+        if (this.isTeleporting) {
+            this.teleportFrames--;
+            if (this.teleportFrames <= 0) {
+                this.isTeleporting = false;
+            }
         }
     }
 
@@ -122,22 +152,50 @@ class Snake {
             this.dy = 1;
         }
     }
+
+    triggerTeleport() {
+        this.isTeleporting = true;
+        this.teleportFrames = 5; // Duração do efeito
+    }
 }
 
-// Inicializa o jogador e os bots
-let player = new Snake('lime', 'Jogador');
-player.changeDirection('right'); // Começa indo para a direita
+// Variável para armazenar a cobra do jogador
+let player;
 
+// Função para inicializar o jogador
+function initPlayer() {
+    const playerColor = snakeColorInput.value;
+    player = new Snake(playerColor, 'Jogador');
+    player.changeDirection('right'); // Começa indo para a direita
+}
+
+// Função para inicializar os bots
 function initBots(numBots) {
     bots = [];
-    const colors = ['red', 'yellow', 'blue', 'orange', 'purple', 'pink', 'cyan', 'magenta', 'lime', 'teal'];
     botNameIndex = 0; // Resetar o índice ao reiniciar o jogo
+
+    const availableColors = getAvailableBotColors(player.color);
+
     for (let i = 0; i < numBots; i++) {
         let botName = getNextBotName();
-        let bot = new Snake(colors[i % colors.length], botName, true);
+        let botColor = availableColors[i % availableColors.length] || getRandomColor();
+        let bot = new Snake(botColor, botName, true);
         bot.randomDirection();
         bots.push(bot);
     }
+}
+
+// Função para obter uma cor aleatória que não seja a do jogador
+function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color;
+    do {
+        color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+    } while (color.toLowerCase() === player.color.toLowerCase());
+    return color;
 }
 
 // Função para adicionar comida
@@ -190,10 +248,20 @@ function gameLoop() {
 
 // Função para desenhar uma cobra
 function drawSnake(snake) {
+    // Aplica efeito de transparência durante o teletransporte
+    if (snake.isTeleporting) {
+        ctx.globalAlpha = 0.5;
+    } else {
+        ctx.globalAlpha = 1;
+    }
+
     ctx.fillStyle = snake.color;
     snake.cells.forEach(cell => {
         ctx.fillRect(cell.x * gridSize, cell.y * gridSize, gridSize - 1, gridSize - 1);
     });
+
+    // Restaura a opacidade
+    ctx.globalAlpha = 1;
 }
 
 // Função para checar colisões
@@ -276,12 +344,12 @@ function checkCollisions() {
         }
     });
 
-    // garantir pelo menos 3 bots ativos**
-    while (bots.length < 3) {
+    // Garantir pelo menos 5 bots ativos
+    while (bots.length < 5) {
         // Cria um novo bot
         let botName = getNextBotName();
-        const colors = ['red', 'yellow', 'blue', 'orange', 'purple', 'pink', 'cyan', 'magenta', 'lime', 'teal'];
-        let botColor = colors[Math.floor(Math.random() * colors.length)];
+        const availableColors = getAvailableBotColors(player.color);
+        let botColor = availableColors[Math.floor(Math.random() * availableColors.length)] || getRandomColor();
         let newBot = new Snake(botColor, botName, true);
         newBot.randomDirection();
         bots.push(newBot);
@@ -325,12 +393,21 @@ function showGameOverScreen() {
 // Função para reiniciar o jogo
 function restartGame() {
     gameOverScreen.classList.add('hidden');
-    player = new Snake('lime', 'Jogador');
-    player.changeDirection('right');
+    canvas.classList.remove('hidden');
+    initPlayer();
     initBots(6); // Inicializa com 6 bots
     foods = [];
     gameInterval = setInterval(gameLoop, 100);
 }
+
+// Evento para o botão de iniciar o jogo
+startButton.addEventListener('click', () => {
+    startScreen.classList.add('hidden');
+    canvas.classList.remove('hidden');
+    initPlayer();
+    initBots(6);
+    gameInterval = setInterval(gameLoop, 100);
+});
 
 // Evento para o botão de reiniciar
 restartButton.addEventListener('click', () => {
@@ -355,5 +432,4 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// Inicia o jogo
-restartGame();
+// Não iniciamos o jogo imediatamente; aguardamos o jogador clicar em "Iniciar Jogo"
