@@ -1,7 +1,8 @@
 // Seleciona os elementos do DOM
 const startScreen = document.getElementById('startScreen');
-const snakeColorInput = document.getElementById('snakeColor');
 const startButton = document.getElementById('startButton');
+const fullscreenButton = document.getElementById('fullscreenButton');
+const colorOptions = document.getElementsByName('snakeColor');
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -11,9 +12,13 @@ const restartButton = document.getElementById('restartButton');
 const exitButton = document.getElementById('exitButton');
 const scoreBoard = document.getElementById('scoreBoard');
 
-// Configurações do jogo
-const gridSize = 20;
-const tileCount = canvas.width / gridSize;
+// **Novas variáveis para controle do tamanho do canvas e da grade**
+let canvasWidth = canvas.width;
+let canvasHeight = canvas.height;
+let gridSize = 20; // Tamanho de cada célula em pixels
+let tileCountX = Math.floor(canvasWidth / gridSize);
+let tileCountY = Math.floor(canvasHeight / gridSize);
+
 let gameInterval;
 let bots = [];
 let foods = [];
@@ -47,7 +52,7 @@ function getNextBotName() {
 }
 
 // Lista de cores disponíveis para os bots
-const botColors = ['red', 'yellow', 'blue', 'orange', 'purple', 'pink', 'cyan', 'magenta', 'lime', 'teal'];
+const botColors = ['blue', 'green', 'pink', 'yellow', 'red', 'purple', 'orange', 'cyan', 'magenta', 'lime'];
 
 // Função para remover a cor do jogador das cores disponíveis para bots
 function getAvailableBotColors(playerColor) {
@@ -61,8 +66,8 @@ class Snake {
         this.color = color;
         this.isBot = isBot;
 
-        this.x = Math.floor(Math.random() * tileCount);
-        this.y = Math.floor(Math.random() * tileCount);
+        this.x = Math.floor(Math.random() * tileCountX);
+        this.y = Math.floor(Math.random() * tileCountY);
         this.dx = 0;
         this.dy = 0;
         this.cells = [];
@@ -85,17 +90,17 @@ class Snake {
 
         // Teletransporte nas bordas com efeito
         if (this.x < 0) {
-            this.x = tileCount - 1;
+            this.x = tileCountX - 1;
             this.triggerTeleport();
-        } else if (this.x >= tileCount) {
+        } else if (this.x >= tileCountX) {
             this.x = 0;
             this.triggerTeleport();
         }
 
         if (this.y < 0) {
-            this.y = tileCount - 1;
+            this.y = tileCountY - 1;
             this.triggerTeleport();
-        } else if (this.y >= tileCount) {
+        } else if (this.y >= tileCountY) {
             this.y = 0;
             this.triggerTeleport();
         }
@@ -164,8 +169,13 @@ let player;
 
 // Função para inicializar o jogador
 function initPlayer() {
-    const playerColor = snakeColorInput.value;
-    player = new Snake(playerColor, 'Jogador');
+    let selectedColor;
+    colorOptions.forEach(option => {
+        if (option.checked) {
+            selectedColor = option.value;
+        }
+    });
+    player = new Snake(selectedColor, 'Jogador');
     player.changeDirection('right'); // Começa indo para a direita
 }
 
@@ -201,11 +211,26 @@ function getRandomColor() {
 // Função para adicionar comida
 function addFood() {
     let food = {
-        x: Math.floor(Math.random() * tileCount),
-        y: Math.floor(Math.random() * tileCount)
+        x: Math.floor(Math.random() * tileCountX),
+        y: Math.floor(Math.random() * tileCountY)
     };
     foods.push(food);
 }
+
+// **Função para redimensionar o canvas e ajustar a grade**
+function resizeCanvas() {
+    canvasWidth = window.innerWidth;
+    canvasHeight = window.innerHeight;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    tileCountX = Math.floor(canvasWidth / gridSize);
+    tileCountY = Math.floor(canvasHeight / gridSize);
+}
+
+// Evento de redimensionamento da janela
+window.addEventListener('resize', () => {
+    resizeCanvas();
+});
 
 // Função principal do jogo
 function gameLoop() {
@@ -397,6 +422,7 @@ function restartGame() {
     initPlayer();
     initBots(6); // Inicializa com 6 bots
     foods = [];
+    resizeCanvas(); // Redimensiona o canvas
     gameInterval = setInterval(gameLoop, 100);
 }
 
@@ -406,7 +432,23 @@ startButton.addEventListener('click', () => {
     canvas.classList.remove('hidden');
     initPlayer();
     initBots(6);
+    resizeCanvas(); // Redimensiona o canvas
     gameInterval = setInterval(gameLoop, 100);
+});
+
+// Evento para o botão de tela cheia
+fullscreenButton.addEventListener('click', () => {
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+    } else if (document.documentElement.webkitRequestFullscreen) { /* Safari */
+        document.documentElement.webkitRequestFullscreen();
+    } else if (document.documentElement.msRequestFullscreen) { /* IE11 */
+        document.documentElement.msRequestFullscreen();
+    }
+    // Após entrar em tela cheia, ajusta o tamanho do canvas
+    setTimeout(() => {
+        resizeCanvas();
+    }, 100); // Pequeno atraso para garantir que o modo tela cheia foi ativado
 });
 
 // Evento para o botão de reiniciar
@@ -432,4 +474,4 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// Não iniciamos o jogo imediatamente; aguardamos o jogador clicar em "Iniciar Jogo"
+// Não iniciamos o jogo

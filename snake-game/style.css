@@ -21,6 +21,34 @@ body {
     align-items: center;
 }
 
+#colorOptions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+#colorOptions label {
+    margin: 5px;
+    cursor: pointer;
+}
+
+.color-box {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    vertical-align: middle;
+    border: 1px solid #fff;
+}
+
+button {
+    margin: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
 canvas {
     border: 1px solid #ccc;
     background-color: #111;
@@ -46,4 +74,10 @@ canvas {
     height: 20px;
     margin-left: 10px;
     background-color: green;
+}
+canvas {
+    display: block;
+    margin: 0;
+    padding: 0;
+    background-color: #111;
 }

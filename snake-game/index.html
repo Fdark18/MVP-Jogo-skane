@@ -8,8 +8,30 @@
 <body>
     <div id="startScreen">
         <h1>Bem-vindo ao Jogo da Cobrinha!</h1>
-        <label for="snakeColor">Escolha a cor da sua cobra:</label>
-        <input type="color" id="snakeColor" name="snakeColor" value="#00ff00">
+        <p>Escolha a cor da sua cobra:</p>
+        <div id="colorOptions">
+            <label>
+                <input type="radio" name="snakeColor" value="blue" checked>
+                <span class="color-box" style="background-color: blue;"></span> Azul
+            </label>
+            <label>
+                <input type="radio" name="snakeColor" value="green">
+                <span class="color-box" style="background-color: green;"></span> Verde
+            </label>
+            <label>
+                <input type="radio" name="snakeColor" value="pink">
+                <span class="color-box" style="background-color: pink;"></span> Rosa
+            </label>
+            <label>
+                <input type="radio" name="snakeColor" value="yellow">
+                <span class="color-box" style="background-color: yellow;"></span> Amarelo
+            </label>
+            <label>
+                <input type="radio" name="snakeColor" value="red">
+                <span class="color-box" style="background-color: red;"></span> Vermelho
+            </label>
+        </div>
+        <button id="fullscreenButton">Modo Tela Cheia</button>
         <button id="startButton">Iniciar Jogo</button>
     </div>
 
