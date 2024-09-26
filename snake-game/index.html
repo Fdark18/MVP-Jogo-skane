@@ -1,14 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Game</title>
+    <title>Jogo da Cobrinha</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <h1>Jogo da Cobrinha</h1>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <button id="fullscreenButton">Tela Cheia</button>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Tela de Game Over -->
+    <div id="gameOverScreen" class="hidden">
+        <h2>Game Over</h2>
+        <p id="finalScore"></p>
+        <p id="allScores"></p>
+        <p id="gameTime"></p>
+        <button id="restartButton">Reiniciar</button>
+        <button id="exitButton">Sair</button>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
