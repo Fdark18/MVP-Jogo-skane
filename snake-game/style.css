@@ -1,74 +1,40 @@
-/* Estilos anteriores */
 body {
+    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
+    background-color: #000;
     height: 100vh;
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #fafafa;
-    position: relative; /* Necessário para posicionar a tela de Game Over */
-}
-
-h1 {
-    position: absolute;
-    top: 10px;
-    font-size: 24px;
-    color: #333;
-}
-
-button {
-    position: absolute;
-    top: 50px;
-    font-size: 16px;
-    padding: 10px 20px;
-    cursor: pointer;
-}
-
-#fullscreenButton {
-    left: 10px;
+    overflow: hidden;
 }
 
 canvas {
-    border: 1px solid #000;
-    display: block;
+    border: 1px solid #ccc;
+    background-color: #111;
 }
 
-/* Estilos para a tela de Game Over */
 #gameOverScreen {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
+    text-align: center;
+    color: #fff;
 }
 
-#gameOverScreen.hidden {
+.hidden {
     display: none;
 }
 
-#gameOverScreen h2 {
-    font-size: 48px;
-    margin-bottom: 20px;
+#scoreBoard {
+    margin-top: 20px;
 }
 
-#gameOverScreen p {
-    font-size: 24px;
-    margin: 10px 0;
-    text-align: center;
-    max-width: 80%;
+#scoreBoard div {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
-#gameOverScreen button {
-    margin: 10px;
-    padding: 10px 20px;
-    font-size: 20px;
-    cursor: pointer;
+.scoreBar {
+    height: 20px;
+    margin-left: 10px;
+    background-color: green;
 }

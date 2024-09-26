@@ -2,25 +2,17 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo da Cobrinha</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Jogo da Cobrinha Atualizado</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Jogo da Cobrinha</h1>
-    <button id="fullscreenButton">Tela Cheia</button>
-    <canvas id="gameCanvas"></canvas>
-
-    <!-- Tela de Game Over -->
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
     <div id="gameOverScreen" class="hidden">
-        <h2>Game Over</h2>
-        <p id="finalScore"></p>
-        <p id="allScores"></p>
-        <p id="gameTime"></p>
+        <h1>Game Over</h1>
+        <div id="scoreBoard"></div>
         <button id="restartButton">Reiniciar</button>
         <button id="exitButton">Sair</button>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>

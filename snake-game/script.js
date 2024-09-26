@@ -1,266 +1,289 @@
+// Seleciona os elementos do DOM
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const fullscreenButton = document.getElementById('fullscreenButton');
 const gameOverScreen = document.getElementById('gameOverScreen');
-const finalScoreEl = document.getElementById('finalScore');
-const allScoresEl = document.getElementById('allScores');
-const gameTimeEl = document.getElementById('gameTime');
 const restartButton = document.getElementById('restartButton');
 const exitButton = document.getElementById('exitButton');
+const scoreBoard = document.getElementById('scoreBoard');
 
-// Ajusta o canvas ao tamanho da janela
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-document.addEventListener('fullscreenchange', resizeCanvas);
-resizeCanvas();
-
+// Configurações do jogo
 const gridSize = 20;
-let tileCountX = Math.floor(canvas.width / gridSize);
-let tileCountY = Math.floor(canvas.height / gridSize);
+const tileCount = canvas.width / gridSize;
+let gameInterval;
+let bots = [];
+let foods = [];
 
-const snakeCount = 6;
-
-let snakes = [];
-let food = {
-    x: Math.floor(Math.random() * tileCountX),
-    y: Math.floor(Math.random() * tileCountY)
-};
-
-// Variáveis para tempo de jogo
-let startTime;
-let elapsedTime = 0;
-
-// Função para entrar em modo de tela cheia
-function enterFullscreen() {
-    if (canvas.requestFullscreen) {
-        canvas.requestFullscreen();
-    } else if (canvas.webkitRequestFullscreen) { /* Safari */
-        canvas.webkitRequestFullscreen();
-    } else if (canvas.msRequestFullscreen) { /* IE11 */
-        canvas.msRequestFullscreen();
+// Classe para representar uma cobra
+class Snake {
+    constructor(color, isBot = false) {
+        this.x = Math.floor(Math.random() * tileCount);
+        this.y = Math.floor(Math.random() * tileCount);
+        this.dx = 0;
+        this.dy = 0;
+        this.cells = [];
+        this.maxCells = 4;
+        this.color = color;
+        this.isBot = isBot;
+        this.score = 0;
+        this.alive = true;
+        this.changeDirectionCooldown = 0;
     }
-}
 
-// Adiciona o evento de clique ao botão
-fullscreenButton.addEventListener('click', () => {
-    enterFullscreen();
-});
+    update() {
+        if (!this.alive) return;
 
-// Cria as cobras iniciais
-function createSnakes() {
-    snakes = []; // Resetar as cobras
-    for (let i = 0; i < snakeCount; i++) {
-        snakes.push({
-            id: i,
-            color: i === 0 ? 'green' : getRandomColor(),
-            snake: [{ x: Math.floor(Math.random() * tileCountX), y: Math.floor(Math.random() * tileCountY) }],
-            direction: { x: 1, y: 0 },
-            alive: true,
-            score: 0 // Inicializa o score
-        });
-    }
-}
+        // Movimento
+        this.x += this.dx;
+        this.y += this.dy;
 
-// Função para gerar cores aleatórias para as cobras
-function getRandomColor() {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let j = 0; j < 6; j++) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-}
+        // Teletransporte nas bordas
+        if (this.x < 0) {
+            this.x = tileCount - 1;
+        } else if (this.x >= tileCount) {
+            this.x = 0;
+        }
 
-createSnakes();
+        if (this.y < 0) {
+            this.y = tileCount - 1;
+        } else if (this.y >= tileCount) {
+            this.y = 0;
+        }
 
-let direction = { x: 1, y: 0 };
+        // Armazena a posição atual
+        this.cells.unshift({ x: this.x, y: this.y });
 
-// Controle da direção da cobra do jogador
-window.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowUp' && direction.y === 0) {
-        direction = { x: 0, y: -1 };
-    } else if (event.key === 'ArrowDown' && direction.y === 0) {
-        direction = { x: 0, y: 1 };
-    } else if (event.key === 'ArrowLeft' && direction.x === 0) {
-        direction = { x: -1, y: 0 };
-    } else if (event.key === 'ArrowRight' && direction.x === 0) {
-        direction = { x: 1, y: 0 };
-    }
-});
+        // Remove o excesso de células
+        if (this.cells.length > this.maxCells) {
+            this.cells.pop();
+        }
 
-// Função para verificar colisão entre duas cobras
-function checkCollision(head1, snake2) {
-    for (let segment of snake2) {
-        if (head1.x === segment.x && head1.y === segment.y) {
-            return true;
+        // Lógica de bot
+        if (this.isBot && this.changeDirectionCooldown === 0) {
+            this.randomDirection();
+            this.changeDirectionCooldown = 10; // Evita mudança muito rápida
+        } else if (this.isBot) {
+            this.changeDirectionCooldown--;
         }
     }
-    return false;
+
+    randomDirection() {
+        const directions = [
+            { dx: 0, dy: -1 }, // Cima
+            { dx: 0, dy: 1 },  // Baixo
+            { dx: -1, dy: 0 }, // Esquerda
+            { dx: 1, dy: 0 }   // Direita
+        ];
+        const randomDir = directions[Math.floor(Math.random() * directions.length)];
+        this.dx = randomDir.dx;
+        this.dy = randomDir.dy;
+    }
+
+    changeDirection(direction) {
+        if (direction === 'left' && this.dx === 0) {
+            this.dx = -1;
+            this.dy = 0;
+        } else if (direction === 'up' && this.dy === 0) {
+            this.dx = 0;
+            this.dy = -1;
+        } else if (direction === 'right' && this.dx === 0) {
+            this.dx = 1;
+            this.dy = 0;
+        } else if (direction === 'down' && this.dy === 0) {
+            this.dx = 0;
+            this.dy = 1;
+        }
+    }
 }
 
-// Função principal de atualização
+// Inicializa o jogador e os bots
+let player = new Snake('lime');
+player.changeDirection('right'); // Começa indo para a direita
+
+function initBots(numBots) {
+    bots = [];
+    const colors = ['red', 'yellow', 'blue', 'orange', 'purple'];
+    for (let i = 0; i < numBots; i++) {
+        let bot = new Snake(colors[i % colors.length], true);
+        bot.randomDirection();
+        bots.push(bot);
+    }
+}
+
+// Função para adicionar comida
+function addFood() {
+    let food = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount)
+    };
+    foods.push(food);
+}
+
+// Função principal do jogo
 function gameLoop() {
-    if (!startTime) {
-        startTime = Date.now();
-    } else {
-        elapsedTime = Math.floor((Date.now() - startTime) / 1000); // Tempo em segundos
-    }
+    // Limpa o canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    tileCountX = Math.floor(canvas.width / gridSize);
-    tileCountY = Math.floor(canvas.height / gridSize);
+    // Atualiza e desenha o jogador
+    player.update();
+    drawSnake(player);
 
-    snakes.forEach(snakeObj => {
-        if (!snakeObj.alive) return;
-
-        const head = { 
-            x: snakeObj.snake[0].x + snakeObj.direction.x, 
-            y: snakeObj.snake[0].y + snakeObj.direction.y 
-        };
-
-        // Verifica se a cobra atravessa as bordas
-        if (head.x < 0) head.x = tileCountX - 1;
-        if (head.x >= tileCountX) head.x = 0;
-        if (head.y < 0) head.y = tileCountY - 1;
-        if (head.y >= tileCountY) head.y = 0;
-
-        // Verifica colisão com outras cobras
-        snakes.forEach(otherSnakeObj => {
-            if (otherSnakeObj.id !== snakeObj.id && otherSnakeObj.alive) {
-                if (checkCollision(head, otherSnakeObj.snake)) {
-                    // Cobra que colidiu absorve a outra
-                    snakeObj.snake = snakeObj.snake.concat(otherSnakeObj.snake);
-                    snakeObj.score += otherSnakeObj.snake.length;
-                    otherSnakeObj.alive = false;
-                }
-            }
-        });
-
-        // Atualiza a direção da cobra do jogador
-        if (snakeObj.id === 0) {
-            snakeObj.direction = direction;
-        } else {
-            // Movimento automático para cobras "bot"
-            if (Math.random() < 0.1) {
-                const randomDirection = Math.floor(Math.random() * 4);
-                if (randomDirection === 0 && snakeObj.direction.y === 0) {
-                    snakeObj.direction = { x: 0, y: -1 };
-                } else if (randomDirection === 1 && snakeObj.direction.y === 0) {
-                    snakeObj.direction = { x: 0, y: 1 };
-                } else if (randomDirection === 2 && snakeObj.direction.x === 0) {
-                    snakeObj.direction = { x: -1, y: 0 };
-                } else if (randomDirection === 3 && snakeObj.direction.x === 0) {
-                    snakeObj.direction = { x: 1, y: 0 };
-                }
-            }
-        }
-
-        snakeObj.snake.unshift(head);
-
-        // Verifica se comeu a comida
-        if (head.x === food.x && head.y === food.y) {
-            snakeObj.score += 1; // Incrementa o score
-            food = {
-                x: Math.floor(Math.random() * tileCountX),
-                y: Math.floor(Math.random() * tileCountY)
-            };
-        } else {
-            snakeObj.snake.pop();
-        }
-
-        // Verifica se a cobra do jogador foi morta
-        if (snakeObj.id === 0 && !snakeObj.alive) {
-            endGame();
-        }
+    // Atualiza e desenha os bots
+    bots.forEach(bot => {
+        bot.update();
+        drawSnake(bot);
     });
-
-    // Verifica se o jogador foi morto
-    const player = snakes.find(snake => snake.id === 0);
-    if (player && !player.alive) {
-        endGame();
-        return;
-    }
-
-    // Desenha a tela
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Desenha a comida
-    ctx.fillStyle = 'red';
-    ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+    foods.forEach(food => {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 1, gridSize - 1);
+    });
 
-    // Desenha as cobras
-    snakes.forEach(snakeObj => {
-        if (!snakeObj.alive) return;
-        ctx.fillStyle = snakeObj.color;
-        snakeObj.snake.forEach(segment => {
-            ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+    // Checa colisões
+    checkCollisions();
+
+    // Gera comida se necessário
+    if (foods.length < 3) {
+        addFood();
+    }
+
+    // Verifica se o jogador está vivo
+    if (!player.alive) {
+        endGame();
+    }
+}
+
+// Função para desenhar uma cobra
+function drawSnake(snake) {
+    ctx.fillStyle = snake.color;
+    snake.cells.forEach(cell => {
+        ctx.fillRect(cell.x * gridSize, cell.y * gridSize, gridSize - 1, gridSize - 1);
+    });
+}
+
+// Função para checar colisões
+function checkCollisions() {
+    // Colisão do jogador com a comida
+    foods.forEach((food, index) => {
+        if (player.x === food.x && player.y === food.y) {
+            player.maxCells++;
+            player.score += 10;
+            foods.splice(index, 1);
+        }
+    });
+
+    // Colisão dos bots com a comida
+    bots.forEach(bot => {
+        foods.forEach((food, index) => {
+            if (bot.x === food.x && bot.y === food.y) {
+                bot.maxCells++;
+                bot.score += 10;
+                foods.splice(index, 1);
+            }
         });
     });
 
-    // Mostra a pontuação do jogador e o tempo
-    ctx.fillStyle = 'black';
-    ctx.font = '20px Arial';
-    ctx.fillText('Score: ' + player.score, 10, 40);
-    ctx.fillText('Tempo: ' + elapsedTime + 's', 10, 70);
+    // Colisões entre cobras
+    let snakes = [player, ...bots];
+    snakes.forEach(snake => {
+        // Verifica colisão com o próprio corpo
+        for (let i = 1; i < snake.cells.length; i++) {
+            if (snake.x === snake.cells[i].x && snake.y === snake.cells[i].y) {
+                snake.alive = false;
+            }
+        }
 
-    setTimeout(gameLoop, 100);
+        // Verifica colisão com outras cobras
+        snakes.forEach(otherSnake => {
+            if (snake !== otherSnake && otherSnake.alive) {
+                otherSnake.cells.forEach(cell => {
+                    if (snake.x === cell.x && snake.y === cell.y) {
+                        // Se colidir com a cabeça
+                        if (cell === otherSnake.cells[0]) {
+                            if (snake.isBot) {
+                                snake.alive = false;
+                            } else {
+                                otherSnake.alive = false;
+                            }
+                        } else {
+                            // Absorve a cobra
+                            snake.maxCells += otherSnake.maxCells;
+                            snake.score += otherSnake.score;
+                            otherSnake.alive = false;
+                        }
+                    }
+                });
+            }
+        });
+    });
 }
 
-// Função para encerrar o jogo
+// Função para terminar o jogo
 function endGame() {
-    // Calcula o tempo total de jogo
-    const totalTime = elapsedTime;
+    clearInterval(gameInterval);
+    showGameOverScreen();
+}
 
-    // Exibe a tela de Game Over
+// Função para mostrar a tela de Game Over
+function showGameOverScreen() {
     gameOverScreen.classList.remove('hidden');
+    scoreBoard.innerHTML = '';
 
-    // Mostra o score final do jogador
-    finalScoreEl.textContent = `Seu Score: ${snakes[0].score}`;
+    let snakes = [player, ...bots];
+    // Ordena por score
+    snakes.sort((a, b) => b.score - a.score);
 
-    // Mostra os scores de todas as cobras
-    let allScoresText = 'Scores das Cobrinhas:\n';
-    snakes.forEach(snakeObj => {
-        allScoresText += `- Cobra ${snakeObj.id + 1} (${snakeObj.color}): ${snakeObj.score}\n`;
+    snakes.forEach(snake => {
+        let scoreDiv = document.createElement('div');
+        scoreDiv.innerHTML = `<strong>${snake.isBot ? 'Bot' : 'Jogador'}:</strong> ${snake.score}`;
+        let scoreBar = document.createElement('div');
+        scoreBar.classList.add('scoreBar');
+        scoreBar.style.width = `${snake.score}px`;
+        // Define a cor baseada no score
+        if (snake.score < 50) {
+            scoreBar.style.backgroundColor = 'red';
+        } else if (snake.score < 100) {
+            scoreBar.style.backgroundColor = 'orange';
+        } else {
+            scoreBar.style.backgroundColor = 'green';
+        }
+        scoreDiv.appendChild(scoreBar);
+        scoreBoard.appendChild(scoreDiv);
     });
-    allScoresEl.textContent = allScoresText;
-
-    // Mostra o tempo de jogo
-    gameTimeEl.textContent = `Tempo de Partida: ${totalTime} segundos`;
-
-    // Pausa o jogo removendo a função gameLoop
-    // Isso pode ser feito usando uma flag, mas como usamos setTimeout, simplesmente retornamos na próxima chamada
 }
 
 // Função para reiniciar o jogo
 function restartGame() {
-    // Oculta a tela de Game Over
     gameOverScreen.classList.add('hidden');
-
-    // Resetar variáveis
-    createSnakes();
-    direction = { x: 1, y: 0 };
-    food = {
-        x: Math.floor(Math.random() * tileCountX),
-        y: Math.floor(Math.random() * tileCountY)
-    };
-    startTime = null;
-    elapsedTime = 0;
-
-    // Reinicia o game loop
-    gameLoop();
+    player = new Snake('lime');
+    player.changeDirection('right');
+    initBots(3);
+    foods = [];
+    gameInterval = setInterval(gameLoop, 100);
 }
 
-// Função para sair do jogo
-function exitGame() {
-    window.location.href = 'thankyou.html';
-}
+// Evento para o botão de reiniciar
+restartButton.addEventListener('click', () => {
+    restartGame();
+});
 
-// Adiciona os eventos aos botões
-restartButton.addEventListener('click', restartGame);
-exitButton.addEventListener('click', exitGame);
+// Evento para o botão de sair
+exitButton.addEventListener('click', () => {
+    window.location.href = 'agradecimento.html';
+});
+
+// Eventos de teclado
+document.addEventListener('keydown', e => {
+    if (e.code === 'ArrowLeft') {
+        player.changeDirection('left');
+    } else if (e.code === 'ArrowUp') {
+        player.changeDirection('up');
+    } else if (e.code === 'ArrowRight') {
+        player.changeDirection('right');
+    } else if (e.code === 'ArrowDown') {
+        player.changeDirection('down');
+    }
+});
 
 // Inicia o jogo
-gameLoop();
+restartGame();
