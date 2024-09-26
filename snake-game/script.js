@@ -13,9 +13,38 @@ let gameInterval;
 let bots = [];
 let foods = [];
 
+// Lista de nomes dos personagens da série "Chaves"
+const botNames = [
+    'Quico',
+    'Seu Madruga',
+    'Dona Florinda',
+    'Chiquinha',
+    'Professor Girafales',
+    'Senhor Barriga',
+    'Nhonho',
+    'Pópis',
+    'Godinez',
+    'Bruxa do 71',
+    'Chaves',
+    'Paty'
+];
+
+// Índice para acompanhar quais nomes já foram usados
+let botNameIndex = 0;
+
+// Função para obter o próximo nome disponível
+function getNextBotName() {
+    const name = botNames[botNameIndex % botNames.length];
+    const count = Math.floor(botNameIndex / botNames.length) + 1;
+    botNameIndex++;
+    // Se já usamos todos os nomes, começamos a reutilizar com um sufixo numérico
+    return count > 1 ? `${name} ${count}` : name;
+}
+
 // Classe para representar uma cobra
 class Snake {
-    constructor(color, isBot = false) {
+    constructor(color, name = 'Bot', isBot = false) {
+        this.name = name;
         this.x = Math.floor(Math.random() * tileCount);
         this.y = Math.floor(Math.random() * tileCount);
         this.dx = 0;
@@ -96,14 +125,16 @@ class Snake {
 }
 
 // Inicializa o jogador e os bots
-let player = new Snake('lime');
+let player = new Snake('lime', 'Jogador');
 player.changeDirection('right'); // Começa indo para a direita
 
 function initBots(numBots) {
     bots = [];
-    const colors = ['red', 'yellow', 'blue', 'orange', 'purple'];
+    const colors = ['red', 'yellow', 'blue', 'orange', 'purple', 'pink', 'cyan', 'magenta', 'lime', 'teal'];
+    botNameIndex = 0; // Resetar o índice ao reiniciar o jogo
     for (let i = 0; i < numBots; i++) {
-        let bot = new Snake(colors[i % colors.length], true);
+        let botName = getNextBotName();
+        let bot = new Snake(colors[i % colors.length], botName, true);
         bot.randomDirection();
         bots.push(bot);
     }
@@ -123,14 +154,18 @@ function gameLoop() {
     // Limpa o canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Atualiza e desenha o jogador
-    player.update();
-    drawSnake(player);
+    // Atualiza e desenha o jogador se ele estiver vivo
+    if (player.alive) {
+        player.update();
+        drawSnake(player);
+    }
 
-    // Atualiza e desenha os bots
+    // Atualiza e desenha os bots vivos
     bots.forEach(bot => {
-        bot.update();
-        drawSnake(bot);
+        if (bot.alive) {
+            bot.update();
+            drawSnake(bot);
+        }
     });
 
     // Desenha a comida
@@ -183,39 +218,74 @@ function checkCollisions() {
         });
     });
 
-    // Colisões entre cobras
+    // Combina todas as cobras em um array
     let snakes = [player, ...bots];
+
+    // Cria um array para armazenar cobras mortas
+    let deadSnakes = [];
+
     snakes.forEach(snake => {
+        if (!snake.alive) return;
+
         // Verifica colisão com o próprio corpo
         for (let i = 1; i < snake.cells.length; i++) {
             if (snake.x === snake.cells[i].x && snake.y === snake.cells[i].y) {
                 snake.alive = false;
+                deadSnakes.push(snake);
             }
         }
 
         // Verifica colisão com outras cobras
         snakes.forEach(otherSnake => {
             if (snake !== otherSnake && otherSnake.alive) {
-                otherSnake.cells.forEach(cell => {
-                    if (snake.x === cell.x && snake.y === cell.y) {
-                        // Se colidir com a cabeça
-                        if (cell === otherSnake.cells[0]) {
-                            if (snake.isBot) {
-                                snake.alive = false;
-                            } else {
-                                otherSnake.alive = false;
-                            }
-                        } else {
-                            // Absorve a cobra
+                // Verifica se as cabeças colidem
+                if (snake.x === otherSnake.x && snake.y === otherSnake.y) {
+                    // Ambas as cobras morrem se colidirem cabeça com cabeça
+                    snake.alive = false;
+                    otherSnake.alive = false;
+                    deadSnakes.push(snake);
+                    deadSnakes.push(otherSnake);
+                } else {
+                    // Verifica colisão com o corpo da outra cobra
+                    for (let i = 0; i < otherSnake.cells.length; i++) {
+                        if (snake.x === otherSnake.cells[i].x && snake.y === otherSnake.cells[i].y) {
+                            // A cobra 'snake' absorve a 'otherSnake'
                             snake.maxCells += otherSnake.maxCells;
                             snake.score += otherSnake.score;
                             otherSnake.alive = false;
+                            deadSnakes.push(otherSnake);
+                            break;
                         }
                     }
-                });
+                }
             }
         });
     });
+
+    // Remove as cobras mortas dos arrays de bots e jogador
+    deadSnakes.forEach(deadSnake => {
+        // Limpa as células da cobra morta
+        deadSnake.cells = [];
+
+        if (deadSnake.isBot) {
+            // Remove o bot do array de bots
+            bots = bots.filter(bot => bot !== deadSnake);
+        } else {
+            // Se o jogador morreu, termina o jogo
+            player.alive = false;
+        }
+    });
+
+    // garantir pelo menos 3 bots ativos**
+    while (bots.length < 3) {
+        // Cria um novo bot
+        let botName = getNextBotName();
+        const colors = ['red', 'yellow', 'blue', 'orange', 'purple', 'pink', 'cyan', 'magenta', 'lime', 'teal'];
+        let botColor = colors[Math.floor(Math.random() * colors.length)];
+        let newBot = new Snake(botColor, botName, true);
+        newBot.randomDirection();
+        bots.push(newBot);
+    }
 }
 
 // Função para terminar o jogo
@@ -235,7 +305,7 @@ function showGameOverScreen() {
 
     snakes.forEach(snake => {
         let scoreDiv = document.createElement('div');
-        scoreDiv.innerHTML = `<strong>${snake.isBot ? 'Bot' : 'Jogador'}:</strong> ${snake.score}`;
+        scoreDiv.innerHTML = `<strong>${snake.name}:</strong> ${snake.score}`;
         let scoreBar = document.createElement('div');
         scoreBar.classList.add('scoreBar');
         scoreBar.style.width = `${snake.score}px`;
@@ -255,9 +325,9 @@ function showGameOverScreen() {
 // Função para reiniciar o jogo
 function restartGame() {
     gameOverScreen.classList.add('hidden');
-    player = new Snake('lime');
+    player = new Snake('lime', 'Jogador');
     player.changeDirection('right');
-    initBots(3);
+    initBots(6); // Inicializa com 6 bots
     foods = [];
     gameInterval = setInterval(gameLoop, 100);
 }
