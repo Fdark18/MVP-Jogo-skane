@@ -1,0 +1,20 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #fafafa;
+}
+
+h1 {
+    position: absolute;
+    top: 10px;
+    font-size: 24px;
+    color: #333;
+}
+
+canvas {
+    border: 1px solid #000;
+}
