@@ -1,0 +1,40 @@
+body {
+    background-color: #000;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+h1 {
+    margin-top: 20px;
+}
+
+.game-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin-top: 20px;
+}
+
+#game-canvas {
+    background-color: #111;
+    border: 2px solid #555;
+}
+
+.sidebar {
+    margin-left: 20px;
+    text-align: left;
+}
+
+.sidebar h2 {
+    margin-bottom: 5px;
+}
+
+.score, .level, .next-piece, .hold-piece {
+    margin-bottom: 20px;
+}
+
+#next-canvas, #hold-canvas {
+    background-color: #111;
+    border: 2px solid #555;
+}
